@@ -1,13 +1,14 @@
 //! Simplistic Model layer
 //! (with mock-store layer in-memory)
 
-use crate::{Error, Result};
+use crate::{ctx::Ctx, Error, Result};
  use serde::{Serialize, Deserialize};
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Ticket {
     id: u64,
+    pub cid: u64,
     title: String,
 }
 
@@ -34,12 +35,17 @@ impl ModelController {
 }
 
 impl ModelController {
-    pub async fn create(&self, ticket_fc: TicketForCreate) -> Result<Ticket> {
+    pub async fn create(
+        &self,
+        ctx: Ctx,
+        ticket_fc: TicketForCreate
+    ) -> Result<Ticket> {
         let mut store = self.tickets_store.lock().unwrap();
 
         let id = store.len() as u64;
         let ticket = Ticket {
             id,
+            cid: ctx.user_id(),
             title: ticket_fc.title,
         };
 
@@ -47,7 +53,10 @@ impl ModelController {
         Ok(ticket)
     }
 
-    pub async fn list_tickets(&self,) -> Result<Vec<Ticket>> {
+    pub async fn list_tickets(
+        &self,
+        _ctx: Ctx,
+    ) -> Result<Vec<Ticket>> {
         let store = self.tickets_store.lock().unwrap();
 
         // this is gonna clone Option and its content, so if Option is none it will
@@ -57,7 +66,11 @@ impl ModelController {
         Ok(list_tickets)
     }
 
-    pub async fn delete(&self, id: u64) -> Result<Ticket> {
+    pub async fn delete(
+        &self,
+        _ctx: Ctx,
+        id: u64
+    ) -> Result<Ticket> {
         let mut store = self.tickets_store.lock().unwrap();
 
         let ticket = store.get_mut(id as usize).and_then(|t| t.take());
